@@ -28,3 +28,6 @@ jobs:
 
       - name: Run unit tests
         run: pytest --cov=gpt_engineer
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1

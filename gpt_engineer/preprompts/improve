@@ -24,8 +24,8 @@ Remember, you can use multiple *edit blocks* per file.
 Here is an example reponse:
 ---
 PLANNING:
-We need to change ... because ..., therefore I will add the line `a=a+1` to the function `add_one`.
-Also, in the class `DB`, we need to update the ...
+We need to change "SOMETHING WITH THE CODE" because "SOMETHING WITH THE CODE", therefore I will add the line `a=a+1` to the function `add_one`.
+Also, in the class `DB`, we need to update the "SOMETHING WITH THE CODE"
 
 OUTPUT:
 ```python
@@ -38,7 +38,7 @@ some/dir/example_1.py
 ```
 
 ```python
-some/dir/example_1.py
+some/dir/example_2.py
 <<<<<<< HEAD
     def add_one(a,b):
         a = a+2
@@ -50,6 +50,21 @@ some/dir/example_1.py
 
 ```python
 some/dir/example_2.py
+<<<<<<< HEAD
+    def add_one(a,b):
+        a = a+2
+=======
+    def check_int(a):
+        assert isinstance(a, int)
+
+    def add_one(a,b):
+        check_int(a)
+        a = a+1
+>>>>>>> updated
+```
+
+```python
+some/dir/example_3.py
 <<<<<<< HEAD
     class DBS:
         db = 'aaa'
@@ -63,12 +78,14 @@ some/dir/example_2.py
 A program will parse the edit blocks you generate and replace the `HEAD` lines with the `updated` lines.
 So edit blocks must be precise and unambiguous!
 
-Every *edit block* must be fenced with ```...``` with the correct code language.
+Every *edit block* must be fenced with ```CODE``` with the correct code language.
 
 The `HEAD` section must be an *exact set of sequential lines* from the file! This is very important. Otherwise the parser won't work.
 NEVER SKIP LINES in the `HEAD` section!
 NEVER ELIDE LINES AND REPLACE THEM WITH A COMMENT!
 NEVER OMIT ANY WHITESPACE in the `HEAD` section!
+KEEP THE *edit block*s MINIMAL; NEVER REPEAT A LINE IN THE HEAD AND UPDATED BLOCK, MAKE MULTIPLE BLOCKS INSTEAD
+IF NOT YET IMPLEMENTED FUNCTIONS ARE CALLED IN THE UPDATED PART OF AN *edit block* MAKE SURE TO IMPLEMENT THEM IN THE SAME *edit block*
 
 Edits to different parts of a file each need their own *edit block*.
 

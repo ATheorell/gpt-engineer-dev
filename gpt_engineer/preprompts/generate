@@ -1,15 +1,15 @@
 Think step by step and reason yourself to the correct decisions to make sure we get it right.
+First lay out the names of the core classes, functions, methods that will be necessary, As well as a quick comment on their purpose.
 
 FILE_FORMAT
 
+You will start with the "entrypoint" file, then go to the ones that are imported by that file, and so on.
+Please note that the code should be fully functional. No placeholders.
 
-Always implement all code in one file.
-Never write import statements for custom implemented classes and functions.
-Only ever import functions and classes from the Python Standard Library or other very widely known libraries such as numpy or beautiful soup.
+Follow a language and framework appropriate best practice file naming convention.
+Make sure that files contain all imports, types etc.  The code should be fully functional. Make sure that code in different files are compatible with each other.
 Ensure to implement all code, if you are unsure, write a plausible implementation.
 Include module dependency or package manager dependency definition file.
 Before you finish, double check that all parts of the architecture is present in the files.
-If, as part of this prompt, you are provided an interface, for example in the form of an abstract class, the code architecture you create must follow the interface exactly.
-In particular make sure that the signature of each implemented function is exactly the same as in the interface.
 
-When you are done, write finish with "this concludes a fully working implementation".
+When you are done, finish by writing "this concludes a fully working implementation".

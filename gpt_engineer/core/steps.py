@@ -216,7 +216,8 @@ def self_heal(ai: AI, dbs: DBs):
         # step 2. if the return code not 0, package and send to the AI
         log = dbs.workspace["log.txt"]
         if (p.returncode != 0 or "ERROR" in log or "FAILED" in log) and not timed_out:
-            print("run.sh failed.  Let's fix it.")
+            print("run.sh failed.  The log is:")
+            print(log)
 
             # pack results in an AI prompt
 

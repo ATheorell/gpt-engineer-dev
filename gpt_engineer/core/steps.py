@@ -229,22 +229,18 @@ def self_heal(ai: AI, dbs: DBs):
             # append the error message
             messages.append(ai.fuser(log))
             if p.returncode != 0:
-                messages = ai.next(
-                    messages, "Please fix all errors " + dbs.preprompts["file_format"], step_name=curr_fn()
-                )
+                new_prompt = "A program has been written, but it doesn't run. The failure messages are " + log
+                dbs.input['prompt'] = new_prompt
+                improve_existing_code(ai, dbs)
             else:
-                messages = ai.next(
-                    messages, "The preceding messages detail a specification of a program that should pass given tests and an attempted implementation of that program. Produce a maximally brief but comprehensive list of changes, including code snippets, from what to what the progam should be changed to pass the tests." , step_name="failure_summary"
-                )
-                messages = ai.next([messages[-1]], dbs.memory["all_output.txt"] + " Write a modified version of the code that precisely implements the suggested changes and copies the remainder as it is." + dbs.preprompts["file_format"], step_name=curr_fn())
-        else:  # the process did not fail, we are done here.
-            return messages
+                # rewrite prompt file
+                new_prompt = "A program has been written, but it doesn't pass mandatory tests. Make modification to the software so that the tests pass. Never modify the tests. The failure messages are " + log
+                dbs.input['prompt'] = new_prompt
+                improve_existing_code(ai, dbs)
+
 
         log_file.close()
 
-        # this overwrites the existing files
-        to_files_and_memory(messages[-1].content.strip(), dbs)
-        attempts += 1
 
     return messages
 
@@ -277,7 +273,7 @@ def simple_gen(ai: AI, dbs: DBs) -> List[Message]:
         input_prompt = dbs.input["prompt"]
 
     messages = ai.start(setup_sys_prompt(dbs), input_prompt, step_name=curr_fn())
-    to_files_and_memory(messages[-1].content.strip(), dbs)
+    to_files_and_memory(messages[-1].content.strip(), dbs, make_file_list=True)
     return messages
 
 

@@ -76,7 +76,7 @@ from gpt_engineer.cli.file_selector import (
 from gpt_engineer.cli.learning import human_review_input
 
 
-MAX_SELF_HEAL_ATTEMPTS = 3  # constants for self healing code
+MAX_SELF_HEAL_ATTEMPTS = 4  # constants for self healing code
 ASSUME_WORKING_TIMEOUT = 30
 SELF_HEAL_HISTORY_LEN = 5
 # Type hint for chat messages
@@ -195,6 +195,7 @@ def self_heal(ai: AI, dbs: DBs):
     messages = []
 
     while attempts < MAX_SELF_HEAL_ATTEMPTS:
+        attempts += 1
         log_file = open(log_path, "w")  # wipe clean on every iteration
         timed_out = False
 
@@ -207,7 +208,7 @@ def self_heal(ai: AI, dbs: DBs):
             bufsize=0,
         )
         try:  # timeout if the process actually runs
-            p.wait(timeout=ASSUME_WORKING_TIMEOUT)
+            p.wait()
         except subprocess.TimeoutExpired:
             timed_out = True
             print("The process hit a timeout before exiting.")
@@ -215,7 +216,16 @@ def self_heal(ai: AI, dbs: DBs):
         # get the result and output
         # step 2. if the return code not 0, package and send to the AI
         log = dbs.workspace["log.txt"]
-        if (p.returncode != 0 or "ERROR" in log or "FAILED" in log) and not timed_out:
+        def all_tests_passed(log):
+            if not "test session starts" in log:
+                return True
+            test_part = log.split("test session starts")[1]
+            if "ERROR" in test_part or "FAILED" in test_part:
+                return False
+            return True
+
+
+        if (p.returncode != 0 or not all_tests_passed(log)) and not timed_out:
             print("run.sh failed.  The log is:")
             print(log)
 
@@ -238,10 +248,10 @@ def self_heal(ai: AI, dbs: DBs):
                 new_prompt = "A program has been written, but it doesn't pass mandatory tests. Make modification to the software so that the tests pass. Never modify the tests. The failure messages are " + log
                 dbs.input['prompt'] = new_prompt
                 improve_existing_code(ai, dbs)
-
-
-        log_file.close()
-
+            log_file.close()
+        else:
+            log_file.close()
+            return messages
 
     return messages
 

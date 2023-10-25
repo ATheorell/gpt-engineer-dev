@@ -1,18 +1,20 @@
 import os
 import subprocess
 
-from datetime import datetime
 from pathlib import Path
 
-import yaml
+import typer
 
-from eval_tools import check_evaluation_component
-from tabulate import tabulate
+from eval_tools import (
+    check_evaluation_component,
+    generate_report,
+    load_evaluations_from_file,
+)
 
-from gpt_engineer.chat_to_files import parse_chat
-from gpt_engineer.db import DB
+from gpt_engineer.core.chat_to_files import parse_chat
+from gpt_engineer.core.db import DB
 
-EVAL_LIST_NAME = "evaluations"  # the top level list in the YAML file
+app = typer.Typer()  # creates a CLI app
 
 
 def single_evaluate(eval_ob: dict) -> list[bool]:
@@ -52,10 +54,12 @@ def single_evaluate(eval_ob: dict) -> list[bool]:
             "python",
             "-u",  # Unbuffered output
             "-m",
-            "gpt_engineer.main",
+            "gpt_engineer.cli.main",
             eval_ob["project_root"],
             "--steps",
             "eval_improve_code",
+            "--temperature",
+            "0",
         ],
         stdout=log_file,
         stderr=log_file,
@@ -75,77 +79,25 @@ def single_evaluate(eval_ob: dict) -> list[bool]:
     return evaluation_results
 
 
-def to_emoji(value: bool) -> str:
-    return "\U00002705" if value else "\U0000274C"
-
-
-def generate_report(evals: list[dict], res: list[list[bool]]) -> None:
-    # High level shows if all the expected_results passed
-    # Detailed shows all the test cases and a pass/fail for each
-    output_lines = []
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    output_lines.append(f"## {current_date}\n\n")
-
-    # Create a summary table
-    headers = ["Project", "Evaluation", "All Tests Pass"]
-    rows = []
-    for i, eval_ob in enumerate(evals):
-        rows.append(
-            [eval_ob["project_root"], eval_ob["name"], to_emoji(all(res[i]))]
-        )  # logical AND of all tests
-    table: str = tabulate(rows, headers, tablefmt="pipe")
-    title = "Existing Code Evaluation Summary:"
-    print(f"\n{title}\n")
-    print(table)
-    print()
-    output_lines.append(f"### {title}\n\n{table}\n\n")
-
-    # Create a detailed table
-    headers = ["Project", "Evaluation", "Test", "Pass"]
-    rows = []
-    for i, eval_ob in enumerate(evals):
-        for j, test in enumerate(eval_ob["expected_results"]):
-            rows.append(
-                [
-                    eval_ob["project_root"],
-                    eval_ob["name"],
-                    eval_ob["expected_results"][j]["type"],
-                    to_emoji(res[i][j]),
-                ]
-            )
-    detail_table: str = tabulate(rows, headers, tablefmt="pipe")
-    title = "Detailed Test Results:"
-    print(f"\n{title} \n")
-    print(detail_table)
-    print()
-
-    output_lines.append(f"### {title}\n\n{detail_table}\n\n")
-    with open("evals/IMPROVE_CODE_RESULTS.md", "a") as file:
-        file.writelines(output_lines)
-
-
-def load_evaluations_from_file(file_path):
-    """Loads the evaluations from a YAML file."""
-    try:
-        with open(file_path, "r") as file:
-            data = yaml.safe_load(file)
-            if EVAL_LIST_NAME in data:
-                return data[EVAL_LIST_NAME]
-            else:
-                print(f"'{EVAL_LIST_NAME}' not found in {file_path}")
-    except FileNotFoundError:
-        print(f"File not found: {file_path}")
-
-
 def run_all_evaluations(eval_list: list[dict]) -> None:
     results = []
     for eval_ob in eval_list:
         results.append(single_evaluate(eval_ob))
 
     # Step 4. Generate Report
-    generate_report(eval_list, results)
+    generate_report(eval_list, results, "evals/IMPROVE_CODE_RESULTS.md")
+
+
+@app.command()
+def main(
+    test_file_path: str = typer.Argument("evals/existing_code_eval.yaml", help="path"),
+):
+    if not os.path.isfile(test_file_path):
+        raise Exception(f"sorry the file: {test_file_path} does not exist.")
+
+    eval_list = load_evaluations_from_file(test_file_path)
+    run_all_evaluations(eval_list)
 
 
 if __name__ == "__main__":
-    eval_list = load_evaluations_from_file("evals/existing_code_eval.yaml")
-    run_all_evaluations(eval_list)
+    app()

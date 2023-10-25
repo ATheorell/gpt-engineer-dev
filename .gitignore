@@ -16,6 +16,7 @@ build/
 .env
 .env.sh
 venv/
+.venv/
 ENV/
 
 # IDE-specific files
@@ -79,3 +80,4 @@ docs/db/
 
 poetry.lock
 .aider*
+.gpteng

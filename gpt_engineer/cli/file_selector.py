@@ -1,3 +1,43 @@
+"""
+This module provides functionalities for selecting files from both a graphical file
+explorer and terminal-based file explorer.
+
+It allows the user to choose files for the purpose of context improvement. This module
+provides a tree-based display in the terminal to enable file selection with support for
+navigating through directories and ignoring specified directories.
+
+Features:
+    - Supports both graphical (using `tkinter`) and terminal-based file selection.
+    - Provides a tree-based display of directories and files.
+    - Allows for custom filtering of displayed files and directories.
+    - Support to reuse a previous file selection list.
+    - Option to ignore specific directories (e.g. "site-packages", "node_modules", "venv").
+
+Classes:
+    - DisplayablePath: Represents a displayable path in a file explorer, allowing for a
+      tree structure display in the terminal.
+    - TerminalFileSelector: Enables terminal-based file selection.
+
+Functions:
+    - is_in_ignoring_extensions: Checks if a path should be ignored based on predefined rules.
+    - ask_for_files: Asks user to select files from either GUI or terminal or uses a previous
+      file list.
+    - gui_file_selector: Displays a GUI for file selection.
+    - terminal_file_selector: Displays a terminal interface for file selection.
+
+Dependencies:
+    - os
+    - re
+    - sys
+    - tkinter
+    - pathlib
+    - typing
+
+Note:
+    This module is built on top of `gpt_engineer.core.db` and assumes existence and
+    functionalities provided by DB and DBs classes.
+"""
+
 import os
 import re
 import sys
@@ -7,13 +47,39 @@ import tkinter.filedialog as fd
 from pathlib import Path
 from typing import List, Union
 
+from gpt_engineer.core.db import DB, DBs
+
 IGNORE_FOLDERS = {"site-packages", "node_modules", "venv"}
+REFERENCE_FILE_LIST_NAME = "file_to_reference_list.txt"
 FILE_LIST_NAME = "file_list.txt"
 
 
 class DisplayablePath(object):
     """
-    A class representing a displayable path in a file explorer.
+    A class that represents a path in a file system and provides functionality
+    to display it in a tree-like structure similar to that of a file explorer.
+
+    Class Attributes:
+        - display_filename_prefix_middle (str): Prefix for filenames in the middle of a list.
+        - display_filename_prefix_last (str): Prefix for filenames at the end of a list.
+        - display_parent_prefix_middle (str): Prefix for parent directories in the middle of a list.
+        - display_parent_prefix_last (str): Prefix for parent directories at the end of a list.
+
+    Attributes:
+        - depth (int): Depth of the path in relation to the root.
+        - path (Path): The actual path object.
+        - parent (DisplayablePath): Parent path. None if it's the root.
+        - is_last (bool): Flag to check if the current path is the last child of its parent.
+
+    Methods:
+        - display_name: Return the display name for the path, with directories having a trailing '/'.
+        - make_tree: Class method to generate a tree of DisplayablePath objects for the given root.
+        - _default_criteria: Default criteria for filtering paths.
+        - displayable: Generate the displayable string representation of the file or directory.
+
+    Note:
+        It is assumed that the global constant IGNORE_FOLDERS is defined elsewhere,
+        which lists the folder names to ignore during the tree generation.
     """
 
     display_filename_prefix_middle = "├── "
@@ -130,6 +196,23 @@ class DisplayablePath(object):
 
 
 class TerminalFileSelector:
+    """
+    A terminal-based file selector for navigating and selecting files from a specified root folder.
+
+    Attributes:
+        number_of_selectable_items (int): The number of items (files) that can be selected.
+        selectable_file_paths (dict[int, str]): A mapping from index number to the corresponding file path.
+        file_path_list (list): A list containing paths of the displayed files.
+        db_paths: A structured representation of all paths (both files and directories) within the root folder.
+
+    Args:
+        root_folder_path (Path): The root folder path from where files are to be listed and selected.
+
+    Methods:
+        display(): Prints the list of files and directories to the terminal, allowing files to be selectable by number.
+        ask_for_selection() -> List[str]: Prompts the user to select files by providing index numbers and returns the list of selected file paths.
+    """
+
     def __init__(self, root_folder_path: Path) -> None:
         self.number_of_selectable_items = 0
         self.selectable_file_paths: dict[int, str] = {}
@@ -137,10 +220,12 @@ class TerminalFileSelector:
         self.db_paths = DisplayablePath.make_tree(
             root_folder_path, parent=None, criteria=is_in_ignoring_extensions
         )
+        self.root_folder_path = root_folder_path
 
     def display(self):
         """
-        Select files from a directory and display the selected files.
+        Displays a list of files from the root folder in the terminal. Files are enumerated for selection,
+        while directories are simply listed (currently non-selectable).
         """
         count = 0
         file_path_enumeration = {}
@@ -170,10 +255,16 @@ class TerminalFileSelector:
 
     def ask_for_selection(self) -> List[str]:
         """
-        Ask user to select files from the terminal after displaying it
+        Prompts the user to select files by providing a series of index numbers, ranges, or 'all' to select everything.
 
         Returns:
-            List[str]: list of selected paths
+            List[str]: A list of selected file paths based on user's input.
+
+        Notes:
+            - Users can select files by entering index numbers separated by commas or spaces.
+            - Ranges can be specified using a dash.
+            - Example input: 1,2,3-5,7,9,13-15,18,20
+            - Users can also input 'all' to select all displayed files.
         """
         user_input = input(
             "\n".join(
@@ -231,7 +322,58 @@ def is_in_ignoring_extensions(path: Path) -> bool:
     return is_hidden and is_pycache
 
 
-def ask_for_files(db_input) -> None:
+def scan_for_reference_files(metadata_db: DB, workspace_db: DB) -> List[str]:
+    """
+    Scans the root directory for reference files and updates the file list in project metadata.
+
+    This function scans the root directory of the workspace for files referenced in the code
+    and updates the file list in the project metadata database. It ensures that the list of
+    reference files is up to date.
+
+    Parameters:
+    - metadata_db (DB): The project metadata database where the reference file list is stored.
+    - workspace_db (DB): The workspace database representing the root directory.
+
+    Returns:
+    - List[str]: A list of file paths found in the workspace.
+    """
+
+    root_directory = workspace_db.path
+    existing_files = []
+
+    # Files to ignore
+    ignore_files = ["run.sh", "README.md", "pre-execution-files.txt", "prompt"]
+
+    # Directories to ignore
+    ignore_directories = ["env", "venv", "preprompts"]
+
+    # Walk through the root directory and find files referenced in the code
+    for dirpath, dirnames, filenames in os.walk(root_directory):
+        # Ignore directories starting with "." and specified directories
+        dirnames[:] = [
+            d
+            for d in dirnames
+            if not d.startswith(".")
+            and not d.startswith("__")
+            and d not in ignore_directories
+        ]
+
+        for filename in filenames:
+            file_path = os.path.join(dirpath, filename)
+
+            # Check if the file should be ignored
+            if filename not in ignore_files:
+                if file_path not in existing_files:
+                    existing_files.append(file_path)
+
+    # Update the referenced file list in the project metadata
+    metadata_db[REFERENCE_FILE_LIST_NAME] = "\n".join(
+        str(file_path) for file_path in existing_files
+    )
+    return existing_files
+
+
+def ask_for_files(metadata_db: DB, workspace_db: DB) -> None:
     """
     Ask user to select files to improve.
     It can be done by terminal, gui, or using the old selection.
@@ -239,11 +381,18 @@ def ask_for_files(db_input) -> None:
     Returns:
         dict[str, str]: Dictionary where key = file name and value = file path
     """
+    if FILE_LIST_NAME in metadata_db:
+        print(
+            f"File list detected at {metadata_db.path / FILE_LIST_NAME}. "
+            "Edit or delete it if you want to select new files."
+        )
+        return
+
     use_last_string = ""
-    if FILE_LIST_NAME in db_input:
+    if FILE_LIST_NAME in metadata_db:
         use_last_string = (
             "3. Use previous file list (available at "
-            + f"{os.path.join(db_input.path, FILE_LIST_NAME)})\n"
+            + f"{os.path.join(metadata_db.path, FILE_LIST_NAME)})\n"
         )
         selection_number = 3
     else:
@@ -270,10 +419,10 @@ def ask_for_files(db_input) -> None:
 
     if selection_number == 1:
         # Open GUI selection
-        file_path_list = gui_file_selector()
+        file_path_list = gui_file_selector(workspace_db.path)
     elif selection_number == 2:
         # Open terminal selection
-        file_path_list = terminal_file_selector()
+        file_path_list = terminal_file_selector(workspace_db.path)
     if (
         selection_number <= 0
         or selection_number > 3
@@ -283,31 +432,31 @@ def ask_for_files(db_input) -> None:
         sys.exit(1)
 
     if not selection_number == 3:
-        db_input[FILE_LIST_NAME] = "\n".join(file_path_list)
+        metadata_db[FILE_LIST_NAME] = "\n".join(
+            str(file_path) for file_path in file_path_list
+        )
 
 
-def gui_file_selector() -> List[str]:
+def gui_file_selector(input_path: str) -> List[str]:
     """
     Display a tkinter file selection window to select context files.
     """
     root = tk.Tk()
     root.withdraw()
     root.call("wm", "attributes", ".", "-topmost", True)
-    file_list = list(
+    return list(
         fd.askopenfilenames(
             parent=root,
-            initialdir=os.getcwd(),
+            initialdir=input_path,
             title="Select files to improve (or give context):",
         )
     )
-    return file_list
 
 
-def terminal_file_selector() -> List[str]:
+def terminal_file_selector(input_path: str) -> List[str]:
     """
     Display a terminal file selection to select context files.
     """
-    file_selector = TerminalFileSelector(Path(os.getcwd()))
+    file_selector = TerminalFileSelector(Path(input_path))
     file_selector.display()
-    selected_list = file_selector.ask_for_selection()
-    return selected_list
+    return file_selector.ask_for_selection()

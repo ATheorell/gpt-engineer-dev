@@ -205,6 +205,7 @@ def self_heal(ai: AI, dbs: DBs):
             cwd=dbs.workspace.path,
             stdout=log_file,
             stderr=log_file,
+            stdin=subprocess.DEVNULL,
             bufsize=0,
         )
         try:  # timeout if the process actually runs
@@ -215,7 +216,10 @@ def self_heal(ai: AI, dbs: DBs):
 
         # get the result and output
         # step 2. if the return code not 0, package and send to the AI
-        log = dbs.workspace["log.txt"]
+        if "log.txt" in dbs.workspace:
+            log = dbs.workspace["log.txt"]
+        else:
+            log = ""
         def all_tests_passed(log):
             if not "test session starts" in log:
                 return True
@@ -225,7 +229,7 @@ def self_heal(ai: AI, dbs: DBs):
             return True
 
 
-        if (p.returncode != 0 or not all_tests_passed(log)) and not timed_out:
+        if ((p.returncode != 0 and p.returncode != 2) or not all_tests_passed(log)) and not timed_out:
             print("run.sh failed.  The log is:")
             print(log)
 
@@ -504,7 +508,7 @@ def gen_entrypoint_enhanced(ai: AI, dbs: DBs) -> List[dict]:
             "c) execute all tests mentioned in the specification.\n"
             "d) if the code contains an entry point like a main function, execute this.\n"
             "Do not install globally. Do not use sudo.\n"
-            "Do not explain the code, just give the commands.\n"
+            "Do not write any comments explaining the code, just give the commands.\n"
             "Do not use placeholders, use example values (like . for a folder argument) "
             "if necessary.\n"
         ),

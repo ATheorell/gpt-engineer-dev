@@ -937,7 +937,7 @@ STEPS = {
         # This seems to add a fairly major improvement to the battleships test - but it breaks every other test
         simple_gen,
         gen_entrypoint_enhanced,
-        self_heal,
+        execute_entrypoint,
     ],
     Config.USE_FEEDBACK: [use_feedback, gen_entrypoint, execute_entrypoint, human_review],
     Config.EXECUTE_ONLY: [execute_entrypoint],

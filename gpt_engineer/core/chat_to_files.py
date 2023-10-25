@@ -85,7 +85,7 @@ def parse_chat(chat) -> List[Tuple[str, str]]:
     return files
 
 
-def to_files_and_memory(chat: str, dbs: DBs, make_file_list: bool=False):
+def to_files_and_memory(chat: str, dbs: DBs, make_file_list: bool = False):
     """
     Save chat to memory, and parse chat to extracted file and save them to the workspace.
 
@@ -103,7 +103,6 @@ def to_files_and_memory(chat: str, dbs: DBs, make_file_list: bool=False):
         dbs.project_metadata[FILE_LIST_NAME] = "\n".join(
             os.path.join(dbs.workspace.path, str(file_path[0])) for file_path in files
         )
-
 
 
 def to_files(chat: str, workspace: DB):

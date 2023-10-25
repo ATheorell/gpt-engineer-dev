@@ -170,6 +170,7 @@ def lite_gen(ai: AI, dbs: DBs) -> List[Message]:
     to_files_and_memory(messages[-1].content.strip(), dbs)
     return messages
 
+
 def get_platform_info():
     """Returns the Platform: OS, and the Python version.
     This is used for self healing.
@@ -178,6 +179,7 @@ def get_platform_info():
     a = f"Python Version: {v.major}.{v.minor}.{v.micro}"
     b = f"\nOS: {platform()}\n"
     return a + b
+
 
 def self_heal(ai: AI, dbs: DBs):
     """Attempts to execute the code from the entrypoint and if it fails,
@@ -220,6 +222,7 @@ def self_heal(ai: AI, dbs: DBs):
             log = dbs.workspace["log.txt"]
         else:
             log = ""
+
         def all_tests_passed(log):
             if not "test session starts" in log:
                 return True
@@ -228,8 +231,9 @@ def self_heal(ai: AI, dbs: DBs):
                 return False
             return True
 
-
-        if ((p.returncode != 0 and p.returncode != 2) or not all_tests_passed(log)) and not timed_out:
+        if (
+            (p.returncode != 0 and p.returncode != 2) or not all_tests_passed(log)
+        ) and not timed_out:
             print("run.sh failed.  The log is:")
             print(log)
 
@@ -238,19 +242,27 @@ def self_heal(ai: AI, dbs: DBs):
             # Using the log from the previous step has all the code and
             # the gen_entrypoint prompt inside.
             if attempts < 1:
-                messages = AI.deserialize_messages(dbs.logs[gen_entrypoint_enhanced.__name__])
+                messages = AI.deserialize_messages(
+                    dbs.logs[gen_entrypoint_enhanced.__name__]
+                )
                 messages.append(ai.fuser(get_platform_info()))  # add in OS and Py version
 
             # append the error message
             messages.append(ai.fuser(log))
             if p.returncode != 0:
-                new_prompt = "A program has been written, but it doesn't run. The failure messages are " + log
-                dbs.input['prompt'] = new_prompt
+                new_prompt = (
+                    "A program has been written, but it doesn't run. The failure messages are "
+                    + log
+                )
+                dbs.input["prompt"] = new_prompt
                 improve_existing_code(ai, dbs)
             else:
                 # rewrite prompt file
-                new_prompt = "A program has been written, but it doesn't pass mandatory tests. Make modification to the software so that the tests pass. Never modify the tests. The failure messages are " + log
-                dbs.input['prompt'] = new_prompt
+                new_prompt = (
+                    "A program has been written, but it doesn't pass mandatory tests. Make modification to the software so that the tests pass. Never modify the tests. The failure messages are "
+                    + log
+                )
+                dbs.input["prompt"] = new_prompt
                 improve_existing_code(ai, dbs)
             log_file.close()
         else:
@@ -258,6 +270,7 @@ def self_heal(ai: AI, dbs: DBs):
             return messages
 
     return messages
+
 
 def simple_gen(ai: AI, dbs: DBs) -> List[Message]:
     """
@@ -512,7 +525,10 @@ def gen_entrypoint_enhanced(ai: AI, dbs: DBs) -> List[dict]:
             "Do not use placeholders, use example values (like . for a folder argument) "
             "if necessary.\n"
         ),
-        user="Information about the codebase:\n\n" + dbs.memory["all_output.txt"] + "Specification prompt:\n\n" + dbs.input["prompt"],
+        user="Information about the codebase:\n\n"
+        + dbs.memory["all_output.txt"]
+        + "Specification prompt:\n\n"
+        + dbs.input["prompt"],
         step_name=curr_fn(),
     )
     print()
@@ -521,6 +537,7 @@ def gen_entrypoint_enhanced(ai: AI, dbs: DBs) -> List[dict]:
     matches = re.finditer(regex, messages[-1].content.strip(), re.DOTALL)
     dbs.workspace["run.sh"] = "\n".join(match.group(1) for match in matches)
     return messages
+
 
 def gen_entrypoint(ai: AI, dbs: DBs) -> List[dict]:
     """
@@ -926,7 +943,7 @@ STEPS = {
     ],
     Config.SIMPLE_ENHANCED: [
         # enhance_prompt_add_strict_requirements, This seems to add some minor improvements for the password generator but given the exta call the the LLM adds a lot of time  its not worth it.
-        enhance_prompt_add_reference_files, #This seems to add a fairly major improvement to the battleships test - but it breaks every other test
+        enhance_prompt_add_reference_files,  # This seems to add a fairly major improvement to the battleships test - but it breaks every other test
         simple_gen,
         gen_entrypoint_enhanced,
         self_heal,

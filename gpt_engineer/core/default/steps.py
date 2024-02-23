@@ -88,6 +88,30 @@ def setup_sys_prompt(preprompts: MutableMapping[Union[str, Path], str]) -> str:
     )
 
 
+def setup_sys_prompt_existing_code(
+    preprompts: MutableMapping[Union[str, Path], str]
+) -> str:
+    """
+    Sets up the system prompt for improving existing code.
+
+    Parameters
+    ----------
+    preprompts : MutableMapping[Union[str, Path], str]
+        A mapping of preprompt messages to guide the AI model.
+
+    Returns
+    -------
+    str
+        The system prompt message for the AI model to improve existing code.
+    """
+    return (
+        preprompts["roadmap"]
+        + preprompts["improve"].replace("FILE_FORMAT", preprompts["file_format_diff"])
+        + "\nUseful to know:\n"
+        + preprompts["philosophy"]
+    )
+
+
 def gen_code(
     ai: AI, prompt: str, memory: BaseMemory, preprompts_holder: PrepromptsHolder
 ) -> FilesDict:
@@ -222,29 +246,6 @@ def execute_entrypoint(
 
     execution_env.upload(files_dict).run(f"bash {ENTRYPOINT_FILE}")
     return files_dict
-
-
-def setup_sys_prompt_existing_code(
-    preprompts: MutableMapping[Union[str, Path], str]
-) -> str:
-    """
-    Sets up the system prompt for improving existing code.
-
-    Parameters
-    ----------
-    preprompts : MutableMapping[Union[str, Path], str]
-        A mapping of preprompt messages to guide the AI model.
-
-    Returns
-    -------
-    str
-        The system prompt message for the AI model to improve existing code.
-    """
-    return (
-        preprompts["improve"].replace("FILE_FORMAT", preprompts["file_format"])
-        + "\nUseful to know:\n"
-        + preprompts["philosophy"]
-    )
 
 
 def improve(

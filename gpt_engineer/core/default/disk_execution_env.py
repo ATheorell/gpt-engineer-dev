@@ -31,6 +31,8 @@ from typing import Optional, Tuple, Union
 from gpt_engineer.core.base_execution_env import BaseExecutionEnv
 from gpt_engineer.core.default.file_store import FileStore
 from gpt_engineer.core.files_dict import FilesDict
+from black import FileMode, format_str
+from black.parsing import InvalidInput
 
 
 class DiskExecutionEnv(BaseExecutionEnv):
@@ -53,11 +55,22 @@ class DiskExecutionEnv(BaseExecutionEnv):
         self.store = FileStore(path)
 
     def upload(self, files: FilesDict) -> "DiskExecutionEnv":
+        for file, content in files.items():
+            try:
+                files[file] = format_str(content, mode=FileMode())
+            except InvalidInput:
+                print(f"{file} cannot be linted with black")
         self.store.upload(files)
         return self
 
     def download(self) -> FilesDict:
-        return self.store.download()
+        files = self.store.download()
+        for file, content in files.items():
+            try:
+                files[file] = format_str(content, mode=FileMode())
+            except InvalidInput:
+                print(f"{file} cannot be linted with black")
+        return files
 
     def popen(self, command: str, no_stdin: Optional[bool] = None) -> subprocess.Popen:
         p = subprocess.Popen(

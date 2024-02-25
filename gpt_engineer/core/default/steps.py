@@ -284,6 +284,12 @@ def improve(
     # Add files as input
     messages.append(HumanMessage(content=f"{files_dict.to_chat()}"))
     messages.append(HumanMessage(content=f"Request: {prompt}"))
+    return _improve_loop(ai, files_dict, memory, messages)
+
+
+def _improve_loop(
+    ai: AI, files_dict: FilesDict, memory: BaseMemory, messages: List
+) -> FilesDict:
     problems = []
     # check edit correctness
     edit_refinements = 0

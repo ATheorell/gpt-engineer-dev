@@ -59,7 +59,7 @@ class DiskExecutionEnv(BaseExecutionEnv):
     def download(self) -> FilesDict:
         return self.store.download()
 
-    def popen(self, command: str) -> subprocess.Popen:
+    def popen(self, command: str, no_stdin: Optional[bool] = None) -> subprocess.Popen:
         p = subprocess.Popen(
             command,
             shell=True,
@@ -68,6 +68,18 @@ class DiskExecutionEnv(BaseExecutionEnv):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
+
+        if no_stdin:
+            p = subprocess.Popen(
+                command,
+                shell=True,
+                cwd=self.store.working_dir,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                stdin=subprocess.DEVNULL,
+                text=True,
+                bufsize=0,
+            )
         return p
 
     def run(self, command: str, timeout: Optional[int] = None) -> Tuple[str, str, int]:

@@ -25,7 +25,7 @@ def _get_dataset() -> Union[Dataset, DatasetDict]:
     try:
         return load_from_disk(DATASET_PATH)
     except FileNotFoundError:
-        print('Dataset not found locally, downloading...')
+        print("Dataset not found locally, downloading...")
 
     dataset = load_dataset("codeparrot/apps")
     dataset.save_to_disk(DATASET_PATH)
@@ -45,12 +45,16 @@ def load_apps():
     dataset = _get_dataset()
     tasks = []
 
-    problems = [Problem(
-        id=problem['problem_id'],
-        question=problem['question'],
-        input_output=problem['input_output'],
-        starter_code=problem['starter_code'],
-    ) for problem in dataset['test'] if problem['problem_id'] in PROBLEM_IDS]
+    problems = [
+        Problem(
+            id=problem["problem_id"],
+            question=problem["question"],
+            input_output=problem["input_output"],
+            starter_code=problem["starter_code"],
+        )
+        for problem in dataset["test"]
+        if problem["problem_id"] in PROBLEM_IDS
+    ]
 
     for problem in problems:
         if len(problem.starter_code):  # TODO: Temporary skip; Handle these too
@@ -59,18 +63,17 @@ def load_apps():
         tasks.append(
             Task(
                 name=str(problem.id),
-                initial_code=FilesDict({"main.py": ''}),
+                initial_code=FilesDict({"main.py": ""}),
                 command="python main.py",
                 prompt=problem.question,
                 input=problem.inputs[0],
                 assertions={
-                    "correct output": lambda
-                        assertable: problem.outputs[0].replace(' ', '') in assertable.stdout.replace(' ', ''),
+                    "correct output": lambda assertable: problem.outputs[0].replace(
+                        " ", ""
+                    )
+                    in assertable.stdout.replace(" ", ""),
                 },
             ),
         )
 
-    return Benchmark(
-        name="APPS",
-        tasks=tasks
-    )
+    return Benchmark(name="APPS", tasks=tasks)

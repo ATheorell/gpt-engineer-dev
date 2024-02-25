@@ -31,8 +31,8 @@ Example of a git diff creating a new file:
 +Last example line
 ```
 -A program will apply the diffs you generate exactly to the code, so diffs must be precise and unambiguous!
--Every diff must be fenced with ```CONTENT OF EDIT BLOCK``` with the correct code language.
+-Every diff must be fenced with triple backtick ```.
 -The file names at the beginning of a diff, (lines starting with --- and +++) is the relative path to the file before and after the diff.
 -LINES TO BE REMOVED (starting with single -) AND LINES TO BE RETAIN (no starting symbol) HAVE TO REPLICATE THE DIFFED HUNK OF THE CODE EXACTLY LINE BY LINE. KEEP THE NUMBER OF RETAIN LINES SMALL IF POSSIBLE.
--NEVER OMIT ANY WHITESPACE NEEDED TO KEEP THE SUCH LINES IDENTICAL.
+-Each line in the source files start with a line number. Do not transfer the line numbers to the diff hunks.
 -AVOID STARTING A HUNK WITH AN EMPTY LINE.

@@ -90,16 +90,15 @@ class BenchmarkAgent(BaseAgent):
         files_dict = improve(
             self.ai, prompt, files_dict, self.memory, self.preprompts_holder
         )
-        self.execution_env.upload(files_dict)
         entrypoint = gen_entrypoint(
             self.ai, files_dict, self.memory, self.preprompts_holder
         )
         combined_dict = {**files_dict, **entrypoint}
         files_dict = FilesDict(combined_dict)
-        self.self_heal(files_dict)
+        files_dict = self.self_heal(files_dict, prompt)
         return files_dict
 
-    def self_heal(self, files_dict: FilesDict) -> None:
+    def self_heal(self, files_dict: FilesDict, prompt: str) -> FilesDict:
         """Attempts to execute the code from the entrypoint and if it fails,
         sends the error output back to the AI with instructions to fix.
         This code will make `MAX_SELF_HEAL_ATTEMPTS` to try and fix the code
@@ -108,80 +107,33 @@ class BenchmarkAgent(BaseAgent):
         this code could work with `simple_gen`, or `gen_clarified_code` as well.
         """
 
-        # step 1. execute the entrypoint
-        log_path = dbs.workspace.path / "log.txt"
-
         attempts = 0
-        messages = []
 
         while attempts < MAX_SELF_HEAL_ATTEMPTS:
             attempts += 1
-            log_file = open(log_path, "w")  # wipe clean on every iteration
             timed_out = False
 
-            s = self.execution_env.popen(files_dict[ENTRYPOINT_FILE])
-            try:  # timeout if the process actually runs
-                p.wait()
-            except subprocess.TimeoutExpired:
-                timed_out = True
-                print("The process hit a timeout before exiting.")
+            # Start the process
+            self.execution_env.upload(files_dict)
+            p = self.execution_env.popen(files_dict[ENTRYPOINT_FILE], no_stdin=True)
 
-            # get the result and output
-            # step 2. if the return code not 0, package and send to the AI
-            if "log.txt" in dbs.workspace:
-                log = dbs.workspace["log.txt"]
-            else:
-                log = ""
+            # Wait for the process to complete and get output
+            stdout_full, stderr_full = p.communicate()
+            if "EOF" in stderr_full:
+                stdout_full = f"When run with {ENTRYPOINT_FILE}, the program should not require user input and instead use example values"
 
-            def all_tests_passed(log):
-                if not "test session starts" in log:
-                    return True
-                test_part = log.split("test session starts")[1]
-                if "ERROR" in test_part or "FAILED" in test_part:
-                    return False
-                return True
-
-            if (
-                (p.returncode != 0 and p.returncode != 2) or not all_tests_passed(log)
-            ) and not timed_out:
+            if (p.returncode != 0 and p.returncode != 2) and not timed_out:
                 print("run.sh failed.  The log is:")
-                print(log)
+                print(stdout_full)
+                print(stderr_full)
 
-                # pack results in an AI prompt
-
-                # Using the log from the previous step has all the code and
-                # the gen_entrypoint prompt inside.
-                if attempts < 1:
-                    messages = AI.deserialize_messages(
-                        dbs.logs[gen_entrypoint_enhanced.__name__]
-                    )
-                    messages.append(
-                        ai.fuser(get_platform_info())
-                    )  # add in OS and Py version
-
-                # append the error message
-                messages.append(ai.fuser(log))
-                if p.returncode != 0:
-                    new_prompt = (
-                        "A program has been written, but it doesn't run. The failure messages are "
-                        + log
-                    )
-                    dbs.input["prompt"] = new_prompt
-                    improve_existing_code(ai, dbs)
-                else:
-                    # rewrite prompt file
-                    new_prompt = (
-                        "A program has been written, but it doesn't pass mandatory tests. Make modification to the software so that the tests pass. Never modify the tests. The failure messages are "
-                        + log
-                    )
-                    dbs.input["prompt"] = new_prompt
-                    improve_existing_code(ai, dbs)
-                log_file.close()
+                new_prompt = f"A program with this specification was requested:\n{prompt}\n, but running it produced the following output:\n{stdout_full}\n and the following errors:\n{stderr_full}. Please change it so that it fulfills the requirements."
+                files_dict = improve(
+                    self.ai, new_prompt, files_dict, self.memory, self.preprompts_holder
+                )
             else:
-                log_file.close()
-                return messages
-
-        return messages
+                break
+        return files_dict
 
 
 def default_config_agent():

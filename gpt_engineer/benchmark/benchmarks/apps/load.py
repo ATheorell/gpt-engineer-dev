@@ -11,7 +11,7 @@ load_apps : function
     Loads the APPS benchmark, which consists of a series coding problems.
 """
 from typing import Union
-
+from collections import OrderedDict
 from gpt_engineer.benchmark.benchmarks.apps.problem import Problem
 from gpt_engineer.benchmark.benchmarks.apps.problems import PROBLEM_IDS
 from gpt_engineer.benchmark.types import Benchmark, Task
@@ -66,13 +66,15 @@ def load_apps():
                 initial_code=FilesDict({"main.py": ""}),
                 command="python main.py",
                 prompt=problem.question,
-                input=problem.inputs[0],
-                assertions={
-                    "correct output": lambda assertable: problem.outputs[0].replace(
-                        " ", ""
-                    )
-                    in assertable.stdout.replace(" ", ""),
-                },
+                inputs=problem.inputs,
+                assertions=OrderedDict(
+                    {
+                        "correct output_"
+                        + str(i): lambda assertable: problem.outputs[i].replace(" ", "")
+                        in assertable.stdout.replace(" ", "")
+                        for i in range(len(problem.outputs))
+                    }
+                ),
             ),
         )
 

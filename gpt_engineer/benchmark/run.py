@@ -49,34 +49,52 @@ def run(
     task_results = []
     for task in benchmark.tasks:
         t0 = time.time()
-        files_dict = agent.improve(task.initial_code, task.prompt, task.command)
+        files_dict = agent.improve(task.initial_code, task.prompt)
         t1 = time.time()
 
         env = DiskExecutionEnv()
         env.upload(files_dict)
+        exec_results = list()
+
+        if task.inputs is None:
+            task.inputs = [""]
+        if len(task.inputs) == 0:
+            task.inputs = [""]
 
         if task.command:
-            p = env.popen(task.command)
-            if task.input:
-                p.stdin.write(task.input.encode())
-            stdout, stderr = p.communicate(benchmark.timeout)
-            stdout, stderr = stdout.decode("utf-8"), stderr.decode("utf-8")
+            for input_pars in task.inputs:
+                p = env.popen(task.command + input_pars)
+                stdout, stderr = p.communicate(benchmark.timeout)
+                stdout, stderr = stdout.decode("utf-8"), stderr.decode("utf-8")
+                exec_results.append(
+                    Assertable(
+                        files=files_dict,
+                        env=env,
+                        process=p,
+                        stdout=stdout,
+                        stderr=stderr,
+                    )
+                )
         else:
             p, stdout, stderr = None, None, None
-        exec_result = Assertable(
-            files=files_dict,
-            env=env,
-            process=p,
-            stdout=stdout,
-            stderr=stderr,
-        )
+            exec_results.append(
+                Assertable(
+                    files=files_dict,
+                    env=env,
+                    process=p,
+                    stdout=stdout,
+                    stderr=stderr,
+                )
+            )
 
         task_results.append(
             TaskResult(
                 task_name=task.name,
                 assertion_results={
                     assertion_name: assertion(exec_result)
-                    for assertion_name, assertion in task.assertions.items()
+                    for assertion_name, assertion, exec_result in zip(
+                        task.assertions.items(), exec_results
+                    )
                 },
                 duration=t1 - t0,
             )

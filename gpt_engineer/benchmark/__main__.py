@@ -86,7 +86,7 @@ def main(
     -------
     None
     """
-    set_llm_cache(SQLiteCache(database_path=".langchain.db"))
+    # set_llm_cache(SQLiteCache(database_path=".langchain.db"))
 
     benchmarks = benchmarks.split(",")
     for benchmark_name in benchmarks:

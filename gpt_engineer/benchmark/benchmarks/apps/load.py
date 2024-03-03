@@ -19,6 +19,7 @@ from gpt_engineer.core.files_dict import FilesDict
 from datasets import load_dataset, load_from_disk, Dataset, DatasetDict
 
 DATASET_PATH = "gpt_engineer/benchmark/benchmarks/apps/dataset"
+MAX_N_TEST_EXAMPLES = 10
 
 
 def _get_dataset() -> Union[Dataset, DatasetDict]:
@@ -65,16 +66,20 @@ def load_apps():
                 name=str(problem.id),
                 initial_code=FilesDict({"main.py": ""}),
                 command="python main.py",
-                prompt=problem.question,
-                inputs=problem.inputs,
-                assertions=OrderedDict(
-                    {
-                        "correct output_"
-                        + str(i): lambda assertable: problem.outputs[i].replace(" ", "")
-                        in assertable.stdout.replace(" ", "")
-                        for i in range(len(problem.outputs))
-                    }
-                ),
+                prompt=problem.question
+                + "\nThe program, including its inputs, should be run from the command line like 'python main \"input1 input2 etc \"', with all inputs inside the qoutation marks. The program should not read inputs from stdin.",
+                inputs=problem.inputs[0:MAX_N_TEST_EXAMPLES],
+                assertions=[
+                    OrderedDict(
+                        {
+                            "correct output": lambda assertable: problem.outputs[
+                                i
+                            ].replace(" ", "")
+                            in assertable.stdout.replace(" ", "")
+                        }
+                    )
+                    for i in range(min(len(problem.outputs), MAX_N_TEST_EXAMPLES))
+                ],
             ),
         )
 

@@ -48,6 +48,8 @@ def run(
     """
     task_results = []
     for task in benchmark.tasks:
+        if task.inputs is not None and task.assertions is not None:
+            assert len(task.inputs) == len(task.assertions)
         t0 = time.time()
         files_dict = agent.improve(task.initial_code, task.prompt)
         t1 = time.time()
@@ -62,8 +64,9 @@ def run(
             task.inputs = [""]
 
         if task.command:
-            for input_pars in task.inputs:
-                p = env.popen(task.command + input_pars)
+            for i, input_pars in enumerate(task.inputs):
+                print(i, input_pars)
+                p = env.popen(task.command + ' "' + input_pars + '"')
                 stdout, stderr = p.communicate(benchmark.timeout)
                 stdout, stderr = stdout.decode("utf-8"), stderr.decode("utf-8")
                 exec_results.append(
@@ -90,12 +93,13 @@ def run(
         task_results.append(
             TaskResult(
                 task_name=task.name,
-                assertion_results={
-                    assertion_name: assertion(exec_result)
-                    for assertion_name, assertion, exec_result in zip(
-                        task.assertions.items(), exec_results
-                    )
-                },
+                assertion_results=[
+                    {
+                        key: assertion(exec_results[i])
+                        for key, assertion in task.assertions[i]
+                    }
+                    for i in range(len(task.assertions))
+                ],
                 duration=t1 - t0,
             )
         )

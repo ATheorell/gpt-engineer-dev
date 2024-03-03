@@ -59,7 +59,7 @@ class Task:
     command: Optional[str]
     prompt: str
     inputs: Optional[List[str]]
-    assertions: Optional[OrderedDict[str, Assertion]]
+    assertions: Optional[List[OrderedDict[str, Assertion]]]
 
 
 @dataclass

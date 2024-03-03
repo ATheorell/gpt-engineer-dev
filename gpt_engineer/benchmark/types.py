@@ -74,5 +74,5 @@ class Benchmark:
 @dataclass
 class TaskResult:
     task_name: str
-    assertion_results: dict[str, bool]
+    assertion_results: list[dict[str, bool]]
     duration: float

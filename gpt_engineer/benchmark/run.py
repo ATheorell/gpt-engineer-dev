@@ -96,7 +96,7 @@ def run(
                 assertion_results=[
                     {
                         key: assertion(exec_results[i])
-                        for key, assertion in task.assertions[i]
+                        for key, assertion in task.assertions[i].items()
                     }
                     for i in range(len(task.assertions))
                 ],

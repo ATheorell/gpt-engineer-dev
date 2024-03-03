@@ -34,6 +34,14 @@ def _get_dataset() -> Union[Dataset, DatasetDict]:
     return dataset
 
 
+class APPS_assertion:
+    def __init__(self, reference):
+        self.reference = reference.replace(" ", "").replace("\n", "")
+
+    def evaluate(self, assertable):
+        return self.reference in assertable.stdout.replace(" ", "").replace("\n", "")
+
+
 def load_apps():
     """
     Loads the APPS benchmark, which consists of a series coding problems.
@@ -71,12 +79,7 @@ def load_apps():
                 inputs=problem.inputs[0:MAX_N_TEST_EXAMPLES],
                 assertions=[
                     OrderedDict(
-                        {
-                            "correct output": lambda assertable: problem.outputs[
-                                i
-                            ].replace(" ", "")
-                            in assertable.stdout.replace(" ", "")
-                        }
+                        {"correct output": APPS_assertion(problem.outputs[i]).evaluate}
                     )
                     for i in range(min(len(problem.outputs), MAX_N_TEST_EXAMPLES))
                 ],

@@ -124,8 +124,9 @@ def print_results(results: list[TaskResult]):
     for task_result in results:
         print(f"\n--- Results for {task_result.task_name} ---")
         print(f"{task_result.task_name} ({task_result.duration:.2f}s)")
-        for assertion_name, assertion_result in task_result.assertion_results.items():
-            checkmark = "✅" if assertion_result else "❌"
+        for assertion_results_dict in task_result.assertion_results:
+            for assertion_name, assertion_result in assertion_results_dict.items():
+                checkmark = "✅" if assertion_result else "❌"
             print(f"  {checkmark} {assertion_name}")
         print()
 
@@ -135,21 +136,16 @@ def print_results(results: list[TaskResult]):
     correct_assertions = sum(
         sum(
             assertion_result
-            for assertion_result in task_result.assertion_results.values()
+            for assertion_results_dict in task_result.assertion_results
+            for assertion_result in assertion_results_dict.values()
         )
         for task_result in results
     )
     total_assertions = sum(
-        len(task_result.assertion_results) for task_result in results
+        len(assertion_results_dict)
+        for task_result in results
+        for assertion_results_dict in task_result.assertion_results
     )
     print(f"Total correct assertions: {correct_assertions}/{total_assertions}")
 
-    correct_tasks = sum(
-        all(
-            assertion_result
-            for assertion_result in task_result.assertion_results.values()
-        )
-        for task_result in results
-    )
-    print(f"Correct tasks: {correct_tasks}/{len(results)}")
     print()

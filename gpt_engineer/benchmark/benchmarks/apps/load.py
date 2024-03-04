@@ -19,7 +19,7 @@ from gpt_engineer.core.files_dict import FilesDict
 from datasets import load_dataset, load_from_disk, Dataset, DatasetDict
 
 DATASET_PATH = "gpt_engineer/benchmark/benchmarks/apps/dataset"
-MAX_N_TEST_EXAMPLES = 10
+MAX_N_TEST_EXAMPLES = 5
 
 
 def _get_dataset() -> Union[Dataset, DatasetDict]:

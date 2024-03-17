@@ -57,8 +57,7 @@ from gpt_engineer.core.default.steps import (
 from gpt_engineer.core.files_dict import FilesDict
 from gpt_engineer.core.git import stage_uncommitted_to_git
 from gpt_engineer.core.preprompts_holder import PrepromptsHolder
-from gpt_engineer.core.prompt import Prompt
-from gpt_engineer.tools.custom_steps import clarified_gen, lite_gen, self_heal
+from gpt_engineer.tools.custom_steps import clarified_gen, lite_gen, self_heal, two_step_gen
 
 app = typer.Typer()  # creates a CLI app
 
@@ -260,6 +259,12 @@ def main(
         "-i",
         help="Improve an existing project by modifying the files.",
     ),
+    two_step_mode: bool = typer.Option(
+        False,
+        "--two-step",
+        "-t",
+        help="Two-step mode - creates code with placeholder and then implements one file at a time.",
+    ),
     lite_mode: bool = typer.Option(
         False,
         "--lite",
@@ -421,6 +426,8 @@ def main(
     # configure generation function
     if clarify_mode:
         code_gen_fn = clarified_gen
+    elif two_step_mode:
+        code_gen_fn = two_step_gen
     elif lite_mode:
         code_gen_fn = lite_gen
     else:

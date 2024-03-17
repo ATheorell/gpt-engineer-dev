@@ -57,7 +57,12 @@ from gpt_engineer.core.default.steps import (
 from gpt_engineer.core.files_dict import FilesDict
 from gpt_engineer.core.git import stage_uncommitted_to_git
 from gpt_engineer.core.preprompts_holder import PrepromptsHolder
-from gpt_engineer.tools.custom_steps import clarified_gen, lite_gen, self_heal, two_step_gen
+from gpt_engineer.tools.custom_steps import (
+    clarified_gen,
+    lite_gen,
+    self_heal,
+    two_step_gen,
+)
 
 app = typer.Typer()  # creates a CLI app
 

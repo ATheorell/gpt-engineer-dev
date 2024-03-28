@@ -63,6 +63,7 @@ from gpt_engineer.tools.custom_steps import (
     self_heal,
     two_step_gen,
 )
+from gpt_engineer.core.prompt import Prompt
 
 app = typer.Typer()  # creates a CLI app
 

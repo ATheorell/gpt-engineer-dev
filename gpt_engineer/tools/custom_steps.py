@@ -256,7 +256,7 @@ def two_step_gen(
     """
 
     preprompts = preprompts_holder.get_preprompts()
-    messages = ai.start(prompt, preprompts["boilerplate"], step_name=curr_fn())
+    messages = ai.start(str(prompt), preprompts["boilerplate"], step_name=curr_fn())
     boilerplate_chat = messages[-1].content.strip()
     memory[CODE_GEN_LOG_FILE] = boilerplate_chat
     boilerplate_files_dict = chat_to_files_dict(boilerplate_chat)

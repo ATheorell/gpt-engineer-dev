@@ -11,6 +11,7 @@ class Problem:
     question: str
     input_output: str
     starter_code: str
+    difficulty: str
 
     @property
     def inputs(self) -> List[str]:

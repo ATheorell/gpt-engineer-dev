@@ -80,6 +80,7 @@ def load_apps():
             question=problem["question"],
             input_output=problem["input_output"],
             starter_code=problem["starter_code"],
+            difficulty=problem["difficulty"],
         )
         for problem in dataset["test"]
         if problem["problem_id"] in PROBLEM_IDS

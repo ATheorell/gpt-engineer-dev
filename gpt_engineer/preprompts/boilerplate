@@ -9,7 +9,8 @@ CODE
 The following tokens must be replaced like so:
 FILENAME is the lowercase combined path and file name including the file extension
 CODE is the code in the file
-You may implement smaller functions
+
+Do not implement any function.
 For each function or method that isn't implemented make sure to add a comment indicating so with a short description or comment documenting the function or method.
 
 Example representation of a file:

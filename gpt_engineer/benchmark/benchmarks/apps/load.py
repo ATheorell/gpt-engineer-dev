@@ -83,9 +83,9 @@ def load_apps():
             difficulty=problem["difficulty"],
         )
         for problem in dataset["test"]
-        if problem["problem_id"] in PROBLEM_IDS
+        if problem["difficulty"] == "competition"
     ]
-
+    problems = problems[2:10]
     for problem in problems:
         prompt = Prompt(
             problem.question

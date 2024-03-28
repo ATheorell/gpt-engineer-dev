@@ -75,8 +75,6 @@ class FilesDict(dict):
         """
         Formats the items of the object (assuming file name and content pairs)
         into a string suitable for log display.
-    def copy(self):
-        return FilesDict(super().copy())
 
         Returns
         -------
@@ -90,9 +88,11 @@ class FilesDict(dict):
             log_str += "\n"
         return log_str
 
-
     def __or__(self, other: dict):
         return FilesDict(super().__or__(other))
+
+    def copy(self):
+        return FilesDict(super().copy())
 
 
 def file_to_lines_dict(file_content: str) -> dict:

@@ -94,7 +94,10 @@ class BenchmarkAgent(BaseAgent):
         #     self.ai, prompt, files_dict, self.memory, self.preprompts_holder
         # )
         files_dict = two_step_gen(
-            self.ai, str(prompt), self.memory, self.preprompts_holder
+            self.ai,
+            str(prompt) + " always put the main function in a file called main.py",
+            self.memory,
+            self.preprompts_holder,
         )
         # entrypoint = gen_entrypoint(
         #     self.ai, files_dict, self.memory, self.preprompts_holder
